@@ -1,0 +1,15 @@
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/koreanit_service?serverTimezone=Asia/Seoul&characterEncoding=utf8
+    username: koreanit_app
+    password: password
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  session:
+    store-type: redis
+    timeout: 12h
+
+  data:
+    redis:
+      host: 127.0.0.1
+      port: 6379

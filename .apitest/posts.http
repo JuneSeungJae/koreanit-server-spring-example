@@ -1,0 +1,51 @@
+@host = http://localhost:8080
+
+### 로그아웃(세션 삭제)
+POST {{host}}/api/logout
+
+### 회원가입 (정상)
+POST {{host}}/api/users
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "password": "1234",
+  "nickname": "게시글작성자",
+  "email": "admin@example.com"
+}
+
+### 로그인 - 세션 쿠키 발급
+POST {{host}}/api/login
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "password": "1234"
+}
+
+### 게시글 생성
+POST {{host}}/api/posts
+Content-Type: application/json
+
+{
+  "title": "테스트",
+  "content": "내용입니다"
+}
+
+### 게시글 단건 조회
+GET {{host}}/api/posts/11
+
+### 게시글 목록 조회
+GET {{host}}/api/posts?page=1&limit=20
+
+### 게시글 수정
+PUT {{host}}/api/posts/11
+Content-Type: application/json
+
+{
+  "title": "2",
+  "content": "2"
+}
+
+### 게시글 삭제
+DELETE {{host}}/api/posts/11

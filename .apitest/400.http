@@ -1,0 +1,89 @@
+@baseUrl = http://localhost:8080
+
+@json = application/json
+
+### username 누락 (400)
+POST {{baseUrl}}/api/users
+Content-Type: application/json
+
+{
+  "password": "1234",
+  "nickname": "테스트",
+  "email": "test@test.com"
+}
+
+
+### username 길이 오류 (400)
+POST {{baseUrl}}/api/users
+Content-Type: application/json
+
+{
+  "username": "ab",
+  "password": "1234",
+  "nickname": "테스트",
+  "email": "test@test.com"
+}
+
+### password 너무 짧음 (400)
+PUT {{baseUrl}}/api/users/10060/password
+Content-Type: application/json
+
+{
+  "password": "12"
+}
+
+### email 형식 오류 (400)
+PUT {{baseUrl}}/api/users/1/email
+Content-Type: application/json
+
+{
+  "email": "not-an-email"
+}
+
+@baseUrl = http://localhost:8080
+
+### Step1 - 존재하지 않는 사용자 (404)
+GET {{baseUrl}}/api/users/999999
+
+### Step2 - 닉네임 변경 대상 없음 (404)
+PUT {{baseUrl}}/api/users/999999/nickname
+Content-Type: application/json
+
+{
+  "nickname": "nickname"
+}
+
+### Step2 - 비밀번호 변경 대상 없음 (404)
+PUT {{baseUrl}}/api/users/999999/password
+Content-Type: application/json
+
+{
+  "password": "1234"
+}
+
+### Step2 - 삭제 대상 없음 (404)
+DELETE {{baseUrl}}/api/users/999999
+
+@baseUrl = http://localhost:8080
+
+### Step1 - username 중복 (409)
+POST {{baseUrl}}/api/users
+Content-Type: application/json
+
+{
+  "username": "test1",
+  "password": "1234",
+  "nickname": "테스트",
+  "email": "t1_new@test.com"
+}
+
+### Step2 - email 중복 (409)
+POST {{baseUrl}}/api/users
+Content-Type: application/json
+
+{
+  "username": "user_new",
+  "password": "1234",
+  "nickname": "테스트",
+  "email": "test1@test.com"
+}

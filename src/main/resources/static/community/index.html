@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Koreanit Community</title>
+  <meta name="description" content="Koreanit Community Service" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body class="bg-slate-50 text-slate-800">
+  <div id="app" v-cloak>
+    <header class="sticky top-0 z-50 border-b border-slate-200/80 bg-white/90 backdrop-blur">
+      <div class="max-w-7xl mx-auto px-4 md:px-6 h-16 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-xl bg-brand-700 text-white grid place-items-center font-bold">K</div>
+          <div>
+            <h1 class="font-bold leading-tight">Koreanit Community</h1>
+            <p class="text-xs text-slate-500">실시간 커뮤니티 서비스</p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button @click="refreshAll" class="hidden sm:inline-flex btn btn-ghost">새로고침</button>
+          <template v-if="me">
+            <div class="hidden md:flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5 text-sm">
+              <strong>{{ me.nickname || me.username }}</strong>
+              <span class="text-slate-400">·</span>
+              <span class="text-slate-500">@{{ me.username }}</span>
+            </div>
+            <button @click="logout" class="btn btn-danger">로그아웃</button>
+          </template>
+          <template v-else>
+            <button @click="openAuth('login')" class="btn btn-ghost">로그인</button>
+            <button @click="openAuth('signup')" class="btn btn-primary">회원가입</button>
+          </template>
+        </div>
+      </div>
+    </header>
+
+    <section class="max-w-7xl mx-auto px-4 md:px-6 pt-8 pb-4">
+      <div class="hero-card p-6 md:p-8 rounded-3xl text-white shadow-lg">
+        <p class="text-xs uppercase tracking-[0.2em] text-brand-100">Community</p>
+        <h2 class="text-2xl md:text-3xl font-extrabold mt-1">함께 만드는 개발자 커뮤니티</h2>
+        <p class="mt-3 text-brand-50 max-w-2xl">회원과 게시글, 댓글이 연결되는 실제 서비스 화면입니다. 세션 기반 인증과 권한 제어가 적용됩니다.</p>
+      </div>
+    </section>
+
+    <div v-if="errorPopup.show" class="fixed top-20 left-1/2 -translate-x-1/2 z-[90] w-[92%] max-w-xl error-popup-enter">
+      <div class="rounded-xl border border-rose-300 bg-rose-50 text-rose-800 shadow-lg p-4 error-popup-card">
+        <div class="flex items-start justify-between gap-3">
+          <p class="text-sm font-medium">{{ errorPopup.message }}</p>
+          <button class="btn btn-danger !px-3 !py-1.5 text-xs" @click="closeErrorPopup">확인</button>
+        </div>
+      </div>
+    </div>
+
+    <main class="max-w-7xl mx-auto px-4 md:px-6 pb-12 grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <section class="lg:col-span-8 space-y-4">
+        <article class="card p-4 md:p-5">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="font-semibold">게시글 작성</h3>
+            <span class="badge" :class="me ? 'badge-ok' : 'badge-muted'">{{ me ? '로그인됨' : '로그인 필요' }}</span>
+          </div>
+
+          <div class="space-y-3">
+            <input v-model.trim="postForm.title" :disabled="!me" class="input" placeholder="제목" />
+            <textarea v-model.trim="postForm.content" :disabled="!me" rows="5" class="input" placeholder="내용"></textarea>
+            <div class="text-right">
+              <button @click="createPost" :disabled="!me || loading.createPost" class="btn btn-primary">
+                {{ loading.createPost ? '등록 중...' : '게시글 등록' }}
+              </button>
+            </div>
+          </div>
+        </article>
+
+        <div class="card p-4 space-y-3">
+          <h3 class="font-semibold">게시글 탐색</h3>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
+            <button class="btn" :class="postViewMode === 'all' ? 'btn-primary' : 'btn-ghost'" @click="switchViewMode('all')">전체 게시글</button>
+            <button class="btn" :class="postViewMode === 'mine' ? 'btn-primary' : 'btn-ghost'" @click="switchViewMode('mine')">내 게시글</button>
+            <button class="btn btn-ghost" @click="refreshAll">새로고침</button>
+          </div>
+
+          <div class="flex gap-2">
+            <input class="input" v-model.trim="postSearchId" placeholder="게시글 번호(id)로 1건 조회" />
+            <button class="btn btn-ghost" @click="searchPostById">조회</button>
+          </div>
+
+          <div v-if="searchedPost" class="rounded-xl border border-slate-200 p-3 bg-slate-50">
+            <p class="text-xs text-slate-500">검색 결과</p>
+            <h4 class="font-semibold mt-1">#{{ searchedPost.id }} {{ searchedPost.title }}</h4>
+            <p class="text-sm text-slate-600 mt-1 line-clamp-2">{{ searchedPost.content }}</p>
+            <button class="btn btn-ghost mt-2" @click="openPost(searchedPost.id)">상세 열기</button>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between">
+          <h3 class="text-lg font-bold">{{ postViewMode === 'all' ? '전체 게시글' : '내 게시글' }}</h3>
+          <p class="text-sm text-slate-500">페이지 {{ page }} · 표시 {{ displayedPosts.length }}개</p>
+        </div>
+
+        <div v-if="loading.posts" class="space-y-3">
+          <div v-for="n in 3" :key="n" class="card p-4 animate-pulse">
+            <div class="h-5 bg-slate-200 rounded w-1/3 mb-3"></div>
+            <div class="h-4 bg-slate-200 rounded w-full mb-2"></div>
+            <div class="h-4 bg-slate-200 rounded w-2/3"></div>
+          </div>
+        </div>
+
+        <div v-else class="space-y-3">
+          <article v-for="post in displayedPosts" :key="post.id" class="card p-4 md:p-5 hover:shadow-md transition">
+            <div class="flex justify-between gap-4">
+              <div class="min-w-0">
+                <button @click="openPost(post.id)" class="text-left">
+                  <h4 class="text-lg font-semibold hover:text-brand-700 truncate">{{ post.title }}</h4>
+                </button>
+                <p class="mt-2 text-slate-600 line-clamp-2">{{ post.content }}</p>
+              </div>
+
+              <div class="shrink-0 flex gap-2">
+                <button @click="openPost(post.id)" class="btn btn-ghost !px-2.5 !py-1.5 text-xs">상세</button>
+                <button @click="deletePost(post.id)" :disabled="!me" class="btn btn-danger !px-2.5 !py-1.5 text-xs disabled:opacity-40">삭제</button>
+              </div>
+            </div>
+
+            <div class="mt-3 pt-3 border-t border-slate-100 text-xs text-slate-500 flex gap-3 flex-wrap">
+              <span>#{{ post.id }}</span>
+              <span>조회 {{ post.viewCount }}</span>
+              <span>댓글 {{ post.commentsCnt }}</span>
+              <span>작성자 {{ post.userId }}</span>
+            </div>
+          </article>
+
+          <div v-if="displayedPosts.length===0" class="card p-10 text-center text-slate-500">게시글이 없습니다.</div>
+
+          <div class="flex items-center justify-center gap-3 pt-2">
+            <button class="btn btn-ghost" :disabled="page <= 1" @click="prevPage">이전</button>
+            <span class="text-sm text-slate-600">{{ page }} 페이지</span>
+            <button class="btn btn-ghost" :disabled="!hasNextPage" @click="nextPage">다음</button>
+          </div>
+        </div>
+      </section>
+
+      <aside class="lg:col-span-4 space-y-4">
+        <section class="card p-5">
+          <h4 class="font-semibold">사용자 정보</h4>
+          <template v-if="me">
+            <dl class="mt-3 text-sm space-y-1">
+              <div><dt class="inline text-slate-500">ID:</dt> <dd class="inline">{{ me.id }}</dd></div>
+              <div><dt class="inline text-slate-500">Username:</dt> <dd class="inline">{{ me.username }}</dd></div>
+              <div><dt class="inline text-slate-500">Nickname:</dt> <dd class="inline">{{ me.nickname }}</dd></div>
+              <div><dt class="inline text-slate-500">Email:</dt> <dd class="inline">{{ me.email || '-' }}</dd></div>
+            </dl>
+
+            <div class="mt-4 pt-4 border-t space-y-3">
+              <h5 class="font-medium text-sm">내 정보 수정</h5>
+
+              <div class="space-y-2">
+                <input class="input" v-model.trim="profileForm.nickname" placeholder="새 닉네임" />
+                <button class="btn btn-ghost w-full" @click="changeNickname">닉네임 변경</button>
+              </div>
+
+              <div class="space-y-2">
+                <input class="input" v-model.trim="profileForm.email" placeholder="새 이메일" />
+                <button class="btn btn-ghost w-full" @click="changeEmail">이메일 변경</button>
+              </div>
+
+              <div class="space-y-2">
+                <input class="input" type="password" v-model="profileForm.password" placeholder="새 비밀번호" />
+                <button class="btn btn-ghost w-full" @click="changePassword">비밀번호 변경</button>
+              </div>
+            </div>
+          </template>
+          <p v-else class="mt-3 text-sm text-slate-500">로그인하면 내 정보를 볼 수 있습니다.</p>
+        </section>
+
+        <section class="card p-5">
+          <h4 class="font-semibold">API 상태</h4>
+          <ul class="mt-3 text-sm text-slate-600 space-y-1">
+            <li>• Base: <code>/api</code></li>
+            <li>• Auth: Session</li>
+            <li>• Posts / Comments 연동됨</li>
+          </ul>
+        </section>
+      </aside>
+    </main>
+
+    <!-- Post Drawer -->
+    <div v-if="selectedPost" class="fixed inset-0 z-[60]">
+      <div class="absolute inset-0 bg-black/45" @click="selectedPost=null"></div>
+      <section class="absolute right-0 top-0 h-full w-full sm:w-[620px] bg-white border-l border-slate-200 shadow-2xl flex flex-col">
+        <header class="h-16 border-b px-5 flex justify-between items-center">
+          <div class="min-w-0">
+            <h3 class="font-semibold truncate">{{ selectedPost.title }}</h3>
+            <p class="text-xs text-slate-500">#{{ selectedPost.id }} · 조회 {{ selectedPost.viewCount }}</p>
+          </div>
+          <button class="btn btn-ghost" @click="selectedPost=null">닫기</button>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-5 space-y-5">
+          <article class="rounded-xl border border-slate-200 bg-slate-50 p-4 whitespace-pre-wrap">{{ selectedPost.content }}</article>
+
+          <section>
+            <h4 class="font-semibold mb-3">댓글</h4>
+            <div class="flex gap-2 mb-3">
+              <input v-model.trim="commentDraft" :disabled="!me" class="input" placeholder="댓글을 입력하세요" />
+              <button @click="createComment(selectedPost.id)" :disabled="!me || loading.createComment" class="btn btn-primary">등록</button>
+            </div>
+
+            <div class="space-y-2">
+              <article v-for="c in selectedComments" :key="c.id" class="rounded-lg border border-slate-200 p-3 flex justify-between gap-3">
+                <div>
+                  <p class="text-xs text-slate-500">#{{ c.id }} · user {{ c.userId }}</p>
+                  <p class="text-sm mt-1">{{ c.content }}</p>
+                </div>
+                <button @click="deleteComment(c.id, selectedPost.id)" :disabled="!me" class="btn btn-danger !px-2.5 !py-1.5 text-xs disabled:opacity-40">삭제</button>
+              </article>
+              <p v-if="selectedComments.length===0" class="text-sm text-slate-500">댓글이 없습니다.</p>
+            </div>
+          </section>
+        </div>
+      </section>
+    </div>
+
+    <!-- Auth Modal -->
+    <div v-if="authModal.open" class="fixed inset-0 z-[70] grid place-items-center p-4">
+      <div class="absolute inset-0 bg-black/45" @click="authModal.open=false"></div>
+      <section class="relative w-full max-w-md card p-5">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="font-semibold text-lg">{{ authModal.mode==='login' ? '로그인' : '회원가입' }}</h3>
+          <button class="btn btn-ghost" @click="authModal.open=false">닫기</button>
+        </div>
+
+        <div v-if="authModal.mode==='login'" class="space-y-3">
+          <input class="input" placeholder="username" v-model.trim="loginForm.username" />
+          <input class="input" type="password" placeholder="password" v-model="loginForm.password" />
+          <button class="btn btn-primary w-full" @click="login">로그인</button>
+          <p class="text-sm text-center text-slate-500">계정이 없나요? <button class="text-brand-700 underline" @click="authModal.mode='signup'">회원가입</button></p>
+        </div>
+
+        <div v-else class="space-y-3">
+          <input class="input" placeholder="username" v-model.trim="signupForm.username" />
+          <input class="input" type="password" placeholder="password" v-model="signupForm.password" />
+          <input class="input" placeholder="nickname" v-model.trim="signupForm.nickname" />
+          <input class="input" placeholder="email" v-model.trim="signupForm.email" />
+          <button class="btn btn-primary w-full" @click="signup">회원가입</button>
+          <p class="text-sm text-center text-slate-500">이미 계정이 있나요? <button class="text-brand-700 underline" @click="authModal.mode='login'">로그인</button></p>
+        </div>
+      </section>
+    </div>
+
+    <!-- Toast -->
+    <div class="fixed left-1/2 -translate-x-1/2 bottom-6 z-[80] w-[92%] max-w-md pointer-events-none">
+      <div v-if="toast.show" :class="toast.ok ? 'bg-emerald-600' : 'bg-rose-600'" class="text-white rounded-xl shadow-lg px-4 py-3 text-sm">
+        {{ toast.message }}
+      </div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>

@@ -1,0 +1,43 @@
+@baseUrl = http://localhost:8080
+
+###
+# 서버 동작 확인용 헬스체크
+GET {{baseUrl}}/hello/users?limit=1
+
+###
+# 로그인 없이 보호 API 호출 → 401(ApiResponse)
+GET {{baseUrl}}/api/me
+
+###
+# 회원가입은 인증 없이 허용 → 200 또는 409(중복)
+POST {{baseUrl}}/api/users
+Content-Type: application/json
+
+{
+  "username": "testuser01",
+  "password": "1234",
+  "nickname": "테스트",
+  "email": "testuser01@example.com"
+}
+
+###
+# 로그인 → 200 + Set-Cookie(JSESSIONID)
+POST {{baseUrl}}/api/login
+Content-Type: application/json
+
+{
+  "username": "testuser01",
+  "password": "1234"
+}
+
+###
+# 로그인 후 보호 API 호출 → 200
+GET {{baseUrl}}/api/me
+
+###
+# /api/** 보호 규칙 확인(로그인 전 401, 후 200/403/404)
+GET {{baseUrl}}/api/users?limit=1
+
+###
+# 로그아웃 (세션 무효화 + 쿠키 삭제)
+POST {{baseUrl}}/api/logout
