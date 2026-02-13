@@ -35,3 +35,10 @@ out/
 
 ### VS Code ###
 .vscode/
+
+# local env
+.env
+
+# local api test files
+.apitest/
+.http/
