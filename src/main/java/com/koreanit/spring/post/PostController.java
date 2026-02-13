@@ -5,7 +5,6 @@ import com.koreanit.spring.post.dto.request.PostCreateRequest;
 import com.koreanit.spring.post.dto.request.PostUpdateRequest;
 import com.koreanit.spring.post.dto.response.PostResponse;
 import com.koreanit.spring.security.SecurityUtils;
-
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
